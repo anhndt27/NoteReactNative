@@ -24,11 +24,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="group"
+        name="search"
         options={{
-          title: 'Group',
+          title: 'Search',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'briefcase' : 'briefcase-outline'} color={color} />
+            <TabBarIcon name={focused ? 'search' : 'search-outline'} color={color} />
           ),
         }}
       />
