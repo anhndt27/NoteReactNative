@@ -18,7 +18,7 @@ import { HelloWave } from "@/components/HelloWave";
 import ParallaxScrollView from "@/components/ParallaxScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RichText, Toolbar, useEditorBridge } from "@10play/tentap-editor";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,6 +32,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { FlatList, GestureHandlerRootView } from "react-native-gesture-handler";
 import { useAuth } from "../context/AuthContext";
+import { INodeListWithoutGroup, getNodeListWithoutGroup } from "../api/home.api";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -65,6 +66,8 @@ export default function HomeScreen() {
     },
   ];
 
+  const [nodeListPrivate, setNodeListPrivate] = useState<INodeListWithoutGroup[]>([]);
+
   const data = [
     {
       id: "1",
@@ -77,6 +80,15 @@ export default function HomeScreen() {
     { id: "4", title: "Item 4", category: "category", dateTime: Date.now },
     { id: "5", title: "Item 5", category: "group", dateTime: Date.now },
   ];
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await getNodeListWithoutGroup(authState?.token || '', authState?.userId || '');
+      setNodeListPrivate(data);
+    };
+
+    fetchData();
+  }, [authState]);
 
   const renderItem = ({ item }: any) => (
     <Pressable
@@ -112,7 +124,6 @@ export default function HomeScreen() {
       <GestureHandlerRootView>
         <BottomSheetModalProvider>
           <View style={styles.index}>
-            <Text style={styles.title}>Home Page</Text>
             <View style={styles.recentComponent}>
               <Text style={styles.recentTitle}>Recent</Text>
               <View style={styles.recentBox}>
@@ -131,20 +142,21 @@ export default function HomeScreen() {
                 onPress={toggleExpanded}
               >
                 <View style={styles.iconCategory}>
+                  <Text style={styles.buttonText}>Local Storage</Text>
                   <TabBarIcon
                     name={
                       expanded ? "chevron-up-outline" : "chevron-down-outline"
                     }
                     color={"#000000"}
+                    style={styles.chevronIcon}
                   />
-                  <Text style={styles.buttonText}>Local Storage</Text>
                 </View>
                 <TabBarIcon name="cloud-offline-outline" />
               </TouchableOpacity>
               {expanded && (
                 <View style={styles.content}>
                   {data1.map((item) => (
-                    <View style={styles.rowItem}>
+                    <View style={styles.rowItem} key={item.id}>
                       <Pressable
                         key={item.id}
                         style={styles.item}
@@ -175,6 +187,7 @@ export default function HomeScreen() {
                 onPress={toggleExpandedPrivate}
               >
                 <View style={styles.iconCategory}>
+                  <Text style={styles.buttonText}>Private Sync</Text>
                   <TabBarIcon
                     name={
                       expandedPrivate
@@ -182,8 +195,8 @@ export default function HomeScreen() {
                         : "chevron-down-outline"
                     }
                     color={"#000000"}
+                    style={styles.chevronIcon}
                   />
-                  <Text style={styles.buttonText}>Private Sync</Text>
                 </View>
                 <TabBarIcon name="cloud-done-outline" />
               </TouchableOpacity>
@@ -191,7 +204,7 @@ export default function HomeScreen() {
                 <>
                   {expandedPrivate && (
                     <View style={styles.content}>
-                      {data1.map((item) => (
+                      {nodeListPrivate?.map((item) => (
                         <View style={styles.rowItem}>
                           <Pressable
                             key={item.id}
@@ -232,6 +245,7 @@ export default function HomeScreen() {
                   onPress={toggleExpandedGroup}
                 >
                   <View style={styles.iconCategory}>
+                    <Text style={styles.buttonText}>Group spaces</Text>
                     <TabBarIcon
                       name={
                         expandedGroup
@@ -239,8 +253,8 @@ export default function HomeScreen() {
                           : "chevron-down-outline"
                       }
                       color={"#000000"}
+                      style={styles.chevronIcon}
                     />
-                    <Text style={styles.buttonText}>Group spaces</Text>
                   </View>
                   <TabBarIcon name="briefcase-outline" />
                 </TouchableOpacity>
@@ -309,12 +323,12 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
+    // borderWidth: 1,
     borderRadius: 20,
     backgroundColor: "#ffffff",
     shadowColor: "#000000",
     shadowOffset: {
-      width: 0,
+      width: 2,
       height: 2,
     },
     shadowOpacity: 0.25,
@@ -391,9 +405,14 @@ const styles = StyleSheet.create({
   },
   index: {
     flex: 1,
-    paddingTop: 50,
+    padding: 8,
+    paddingTop: 44,
   },
   btnContainer: {
     marginTop: 12,
   },
+  chevronIcon: {
+    fontSize: 20,
+    paddingHorizontal: 2
+  }
 });
