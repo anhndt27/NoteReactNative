@@ -1,12 +1,8 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import useWeatherData from '../hooks/useGroup';
 import { View, Text, Button, StyleSheet, TextInput, Pressable, Image, ActivityIndicator  } from 'react-native';
 
 const SearchScreen = ()  => {
-  const 
-    weatherData
-   = useWeatherData();
   
   return (
       <>

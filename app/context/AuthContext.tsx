@@ -4,7 +4,7 @@ import baseUrl from "../api/api";
 import * as SecureStore from 'expo-secure-store';
 
 interface AuthProps {
-    authState?: {token: string | null; authenticated: boolean | null; userId: string | null; groupId: number | null; groupName: string | null};
+    authState?: {token: string | null; authenticated: boolean | false; userId: string | null; groupId: number | null; groupName: string | null};
     onRegister?: (userName: string, email: string, password: string) => Promise<any>;
     onLogin?: (userName: string, password: string) => Promise<any>;
     onLogout?: () => Promise<any>;
@@ -20,13 +20,13 @@ export const useAuth = () => {
 export const AuthProvider = ({children}: any) => {
     const [authState, setAuthState] = useState<{
         token: string | null;
-        authenticated: boolean | null;
+        authenticated: boolean | false;
         userId: string | null;
         groupId: number | null;
         groupName: string | null
     }>({
         token: null,
-        authenticated: null,
+        authenticated: false,
         userId: null, 
         groupId: null,
         groupName: null,

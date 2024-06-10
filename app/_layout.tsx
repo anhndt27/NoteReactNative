@@ -4,11 +4,10 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-
+import 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -34,11 +33,8 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Back' }} />
           <Stack.Screen name="+not-found" />
-          <Stack.Screen
-            name="custom_component/note"
-            options={{ title: 'Note' }}
-            />
-          <Stack.Screen name="(tabs)/account" options={{ headerShown: false, title: 'Account'}}/>
+          <Stack.Screen name="custom_component/note" options={{ title: 'Note' }} />
+          <Stack.Screen name="(tabs)/account" options={{ headerShown: false, title: 'Account' }} />
         </Stack>
       </AuthProvider>
     </ThemeProvider>
