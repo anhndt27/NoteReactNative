@@ -23,7 +23,7 @@ const Account = () => {
     const result = await onLogin!(username, password);
     setLoading(false);
     if(result && result.error){
-      alert(result.msg);
+      alert("Incorrect user name or password");
     }
   }
 
@@ -42,7 +42,6 @@ const Account = () => {
         const userInfo = await userInformation(authState.token, authState.userId);
         if (userInfo) {
           setUser(userInfo);
-          console.log(999, user)
         }
       }
     };

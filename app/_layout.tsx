@@ -7,6 +7,8 @@ import 'react-native-reanimated';
 import 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Button } from 'react-native';
+import { View } from 'react-native-reanimated/lib/typescript/Animated';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,10 +33,14 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
         <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Back' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
           <Stack.Screen name="+not-found" />
-          <Stack.Screen name="custom_component/note" options={{ title: 'Note' }} />
-          <Stack.Screen name="(tabs)/account" options={{ headerShown: false, title: 'Account' }} />
+          <Stack.Screen 
+            name="custom_component/note" 
+            options={{ 
+              title: 'Note', 
+            }} 
+          />
         </Stack>
       </AuthProvider>
     </ThemeProvider>

@@ -21,7 +21,8 @@ const OptionItem = ({ dataOption, bottomSheetModalRef }: OptionItemProps) => {
             >
                 <View style={styles.container}>
                     <View>
-                        <Text>Test</Text>
+                        <Text>{dataOption?.title}</Text>
+                        <Text>{dataOption?.title}</Text>
                     </View>
                     <Pressable style={styles.option}>
                         <Text>Copy link</Text>

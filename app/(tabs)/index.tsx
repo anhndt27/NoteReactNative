@@ -13,6 +13,7 @@ import {
   useWindowDimensions,
   Pressable,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { HelloWave } from "@/components/HelloWave";
 import ParallaxScrollView from "@/components/ParallaxScrollView";
@@ -30,9 +31,17 @@ import {
   BottomSheetModalProvider,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
-import { FlatList, GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  FlatList,
+  GestureHandlerRootView,
+  ScrollView,
+} from "react-native-gesture-handler";
 import { useAuth } from "../context/AuthContext";
-import { INodeListWithoutGroup, getNodeListWithoutGroup } from "../api/home.api";
+import {
+  INodeListWithGroup,
+  getNodeListWithoutGroup,
+  getNoteListWithGroup
+} from "../api/home.api";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -41,73 +50,118 @@ export default function HomeScreen() {
   const [expandedGroup, setExpandedGroup] = useState(false);
   const [dataOption, setDataOption] = useState();
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const { authState, onLogout } = useAuth();
+  const { authState } = useAuth();
   const toggleExpanded = () => setExpanded(!expanded);
   const toggleExpandedPrivate = () => setExpandedPrivate(!expandedPrivate);
   const toggleExpandedGroup = () => setExpandedGroup(!expandedGroup);
-
+  const [nodeListPrivate, setNodeListPrivate] = useState<
+    INodeListWithGroup[]
+  >([]);
+  const [nodeListGroup, setNodeListGroup] = useState<
+    INodeListWithGroup[]
+  >([]);
   const handlePresentModalPress = useCallback((dataSelect: any) => {
     setDataOption(dataSelect);
     bottomSheetModalRef.current?.present();
   }, []);
+  const [reload, setReload] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const data1 = [
     {
       id: 1,
       title: "note2",
-      category: "local",
+      category: "Local",
       dateTime: Date.now,
     },
     {
       id: 2,
       title: "note3",
-      category: "local",
+      category: "Local",
+      dateTime: Date.now,
+    },
+    {
+      id: 3,
+      title: "note3",
+      category: "Local",
+      dateTime: Date.now,
+    },
+    {
+      id: 4,
+      title: "note3",
+      category: "Local",
+      dateTime: Date.now,
+    },
+    {
+      id: 5,
+      title: "note3",
+      category: "Local",
       dateTime: Date.now,
     },
   ];
 
-  const [nodeListPrivate, setNodeListPrivate] = useState<INodeListWithoutGroup[]>([]);
 
   const data = [
     {
       id: "1",
       title: "Item 1222222222",
-      category: "local",
+      category: "Local",
       dateTime: Date.now,
     },
-    { id: "2", title: "Item 2", category: "private", dateTime: Date.now },
-    { id: "3", title: "Item 3", category: "group", dateTime: Date.now },
-    { id: "4", title: "Item 4", category: "category", dateTime: Date.now },
-    { id: "5", title: "Item 5", category: "group", dateTime: Date.now },
+    { id: "2", title: "Item 2", category: "Private", dateTime: Date.now },
+    { id: "3", title: "Item 3", category: "Group", dateTime: Date.now },
+    { id: "4", title: "Item 4", category: "Private", dateTime: Date.now },
+    { id: "5", title: "Item 5", category: "Group", dateTime: Date.now },
   ];
 
   useEffect(() => {
+    setLoading(true);
     const fetchData = async () => {
-      const data = await getNodeListWithoutGroup(authState?.token || '', authState?.userId || '');
+      const data = await getNodeListWithoutGroup(
+        authState?.token || "",
+        authState?.userId || ""
+      );
+      if(data) setLoading(false);
       setNodeListPrivate(data);
     };
 
     fetchData();
-  }, [authState]);
+  }, [authState, reload]);
+
+  useEffect(() => {
+    setLoading(true);
+    const fetchData = async () => {
+      const data = await getNoteListWithGroup(
+        authState?.token || "",
+        authState?.userId || "",
+        authState?.groupId || 0
+      );
+      if(data) setLoading(false);
+      setNodeListGroup(data);
+    };
+
+    fetchData();
+  }, [authState, reload]);
 
   const renderItem = ({ item }: any) => (
     <Pressable
       onPress={() =>
         router.push({
           pathname: "../custom_component/note",
-          params: { id: item.id },
+          params: { id: item.id, title: item.title },
         })
       }
       style={styles.itemRecent}
     >
       <TabBarIcon
         name={
-          item.category === "local"
+          item.category === "Local"
             ? "cloud-offline-outline"
-            : item.category === "private"
+            : item.category === "Private"
             ? "cloud-done-outline"
             : "briefcase-outline"
         }
+        color={"#696969"}
       />
       <Text
         style={styles.textItemRecent}
@@ -123,177 +177,219 @@ export default function HomeScreen() {
     <>
       <GestureHandlerRootView>
         <BottomSheetModalProvider>
-          <View style={styles.index}>
-            <View style={styles.recentComponent}>
-              <Text style={styles.recentTitle}>Recent</Text>
-              <View style={styles.recentBox}>
-                <FlatList
-                  data={data}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyExtractor={(item) => item.id}
-                  renderItem={renderItem}
-                />
+          {loading && (
+            <ActivityIndicator style={styles.conponentLoading} size="large" color="#000000" />
+          )}
+          <View style={styles.componentAdd}>
+            <Pressable  style={styles.btnAdd}
+                onPress={() =>
+                  router.push({
+                    pathname: "../custom_component/note",
+                    params: { id: 0, title: 'New note' },
+                  })
+                }>
+              <TabBarIcon name={'create-outline'} color={'#696969'}></TabBarIcon>
+            </Pressable>
+          </View>
+          <View style={styles.conponentReload}>
+            <Pressable onPress={() => setReload(!reload)}>
+              <TabBarIcon name={'reload-outline'} color={'#696969'}></TabBarIcon>
+            </Pressable>
+          </View>
+          <ScrollView>
+            <View style={styles.index}>
+              <View style={styles.recentComponent}>
+                <Text style={styles.recentTitle}>Recent</Text>
+                <View style={styles.recentBox}>
+                  <FlatList
+                    data={data}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    renderItem={renderItem}
+                  />
+                </View>
               </View>
-            </View>
-            <View style={styles.collapseBox}>
-              <TouchableOpacity
-                style={[styles.collapseButton]}
-                onPress={toggleExpanded}
-              >
-                <View style={styles.iconCategory}>
-                  <Text style={styles.buttonText}>Local Storage</Text>
-                  <TabBarIcon
-                    name={
-                      expanded ? "chevron-up-outline" : "chevron-down-outline"
-                    }
-                    color={"#000000"}
-                    style={styles.chevronIcon}
-                  />
-                </View>
-                <TabBarIcon name="cloud-offline-outline" />
-              </TouchableOpacity>
-              {expanded && (
-                <View style={styles.content}>
-                  {data1.map((item) => (
-                    <View style={styles.rowItem} key={item.id}>
-                      <Pressable
-                        key={item.id}
-                        style={styles.item}
-                        onPress={() =>
-                          router.push({
-                            pathname: "../custom_component/note",
-                            params: { id: item.id },
-                          })
-                        }
-                      >
-                        <TabBarIcon name="document-text-outline" />
-                        <Text style={styles.textItem}>{item.title}</Text>
-                      </Pressable>
-                      <Pressable
-                        style={styles.option}
-                        onPress={(item) => handlePresentModalPress(item)}
-                      >
-                        <TabBarIcon name="options-outline" />
-                      </Pressable>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-            <View style={styles.collapseBox}>
-              <TouchableOpacity
-                style={[styles.collapseButton]}
-                onPress={toggleExpandedPrivate}
-              >
-                <View style={styles.iconCategory}>
-                  <Text style={styles.buttonText}>Private Sync</Text>
-                  <TabBarIcon
-                    name={
-                      expandedPrivate
-                        ? "chevron-up-outline"
-                        : "chevron-down-outline"
-                    }
-                    color={"#000000"}
-                    style={styles.chevronIcon}
-                  />
-                </View>
-                <TabBarIcon name="cloud-done-outline" />
-              </TouchableOpacity>
-              {authState?.authenticated ? (
-                <>
-                  {expandedPrivate && (
-                    <View style={styles.content}>
-                      {nodeListPrivate?.map((item) => (
-                        <View style={styles.rowItem}>
-                          <Pressable
-                            key={item.id}
-                            style={styles.item}
-                            onPress={() =>
-                              router.push({
-                                pathname: "../custom_component/note",
-                                params: { id: item.id },
-                              })
-                            }
-                          >
-                            <TabBarIcon name="document-text-outline" />
-                            <Text style={styles.textItem}>{item.title}</Text>
-                          </Pressable>
-                          <Pressable
-                            style={styles.option}
-                            onPress={handlePresentModalPress}
-                          >
-                            <TabBarIcon name="options-outline" />
-                          </Pressable>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </>
-              ) : (
-                <>
-                  <View>
-                    <Text>Login For Use</Text>
-                  </View>
-                </>
-              )}
-            </View>
-            {authState?.authenticated ? (
               <View style={styles.collapseBox}>
                 <TouchableOpacity
                   style={[styles.collapseButton]}
-                  onPress={toggleExpandedGroup}
+                  onPress={toggleExpanded}
                 >
                   <View style={styles.iconCategory}>
-                    <Text style={styles.buttonText}>Group spaces</Text>
+                    <Text style={styles.buttonText}>Local Storage</Text>
                     <TabBarIcon
                       name={
-                        expandedGroup
-                          ? "chevron-up-outline"
-                          : "chevron-down-outline"
+                        expanded ? "chevron-up-outline" : "chevron-down-outline"
                       }
-                      color={"#000000"}
+                      color={"#696969"}
                       style={styles.chevronIcon}
                     />
                   </View>
-                  <TabBarIcon name="briefcase-outline" />
+                  <TabBarIcon name="cloud-offline-outline" color={"#696969"} />
                 </TouchableOpacity>
-                {expandedGroup && authState?.groupId ? (
+                {expanded && (
                   <View style={styles.content}>
                     {data1.map((item) => (
-                      <View style={styles.rowItem}>
+                      <View style={styles.rowItem} > 
                         <Pressable
-                          key={item.id}
                           style={styles.item}
                           onPress={() =>
                             router.push({
                               pathname: "../custom_component/note",
-                              params: { id: item.id },
+                              params: { id: item.id, title: item.title },
                             })
                           }
                         >
-                          <TabBarIcon name="document-text-outline" />
+                          <TabBarIcon
+                            name="document-text-outline"
+                            color={"#696969"}
+                          />
                           <Text style={styles.textItem}>{item.title}</Text>
                         </Pressable>
                         <Pressable
                           style={styles.option}
-                          onPress={handlePresentModalPress}
+                          onPress={() => handlePresentModalPress(item)}
                         >
-                          <TabBarIcon name="options-outline" />
+                          <TabBarIcon
+                            name="options-outline"
+                            color={"#696969"}
+                          />
                         </Pressable>
                       </View>
                     ))}
                   </View>
+                )}
+              </View>
+              <View style={styles.collapseBox}>
+                <TouchableOpacity
+                  style={[styles.collapseButton]}
+                  onPress={toggleExpandedPrivate}
+                >
+                  <View style={styles.iconCategory}>
+                    <Text style={styles.buttonText}>Private Sync</Text>
+                    <TabBarIcon
+                      name={
+                        expandedPrivate
+                          ? "chevron-up-outline"
+                          : "chevron-down-outline"
+                      }
+                      color={"#696969"}
+                      style={styles.chevronIcon}
+                    />
+                  </View>
+                  <TabBarIcon name="cloud-done-outline" color={"#696969"} />
+                </TouchableOpacity>
+                {authState?.authenticated ? (
+                  <>
+                    {expandedPrivate && (
+                      <View style={styles.content}>
+                        {nodeListPrivate?.map((item) => (
+                          <View style={styles.rowItem}>
+                            <Pressable
+                              style={styles.item}
+                              onPress={() =>
+                                router.push({
+                                  pathname: "../custom_component/note",
+                                  params: { id: item.id, title: item.title },
+                                })
+                              }
+                            >
+                              <TabBarIcon
+                                name="document-text-outline"
+                                color={"#696969"}
+                              />
+                              <Text style={styles.textItem}>{item.title}</Text>
+                            </Pressable>
+                            <Pressable
+                              style={styles.option}
+                              onPress={() => handlePresentModalPress(item)}
+                            >
+                              <TabBarIcon
+                                name="options-outline"
+                                color={"#696969"}
+                              />
+                            </Pressable>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </>
                 ) : (
                   <>
                     <View>
-                      <Text>Join Group</Text>
+                      <Text>Login For Use</Text>
                     </View>
                   </>
                 )}
               </View>
-            ) : null}
-          </View>
+              {authState?.authenticated ? (
+                <View style={styles.collapseBox}>
+                  <TouchableOpacity
+                    style={[styles.collapseButton]}
+                    onPress={toggleExpandedGroup}
+                  >
+                    <View style={styles.iconCategory}>
+                      <Text style={styles.buttonText}>Group spaces</Text>
+                      <TabBarIcon
+                        name={
+                          expandedGroup
+                            ? "chevron-up-outline"
+                            : "chevron-down-outline"
+                        }
+                        color={"#696969"}
+                        style={styles.chevronIcon}
+                      />
+                    </View>
+                    <TabBarIcon name="briefcase-outline" color={"#696969"} />
+                  </TouchableOpacity>
+                  {authState?.groupId ? (
+                    <>
+                      {expandedGroup && (
+                        <View style={styles.content}>
+                          {nodeListGroup.map((item) => (
+                            <View style={styles.rowItem}>
+                              <Pressable
+                                style={styles.item}
+                                onPress={() =>
+                                  router.push({
+                                    pathname: "../custom_component/note",
+                                    params: { id: item.id, title: item.title },
+                                  })
+                                }
+                              >
+                                <TabBarIcon
+                                  name="document-text-outline"
+                                  color={"#696969"}
+                                />
+                                <Text style={styles.textItem}>
+                                  {item.title}
+                                </Text>
+                              </Pressable>
+                              <Pressable
+                                style={styles.option}
+                                onPress={() => handlePresentModalPress(item)}
+                              >
+                                <TabBarIcon
+                                  name="options-outline"
+                                  color={"#696969"}
+                                />
+                              </Pressable>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <View>
+                        <Text>Join Group</Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              ) : null}
+            </View>
+           
+          </ScrollView>
           <OptionItem
             bottomSheetModalRef={bottomSheetModalRef}
             dataOption={dataOption}
@@ -305,6 +401,44 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  btnAdd: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '90%'
+  },
+  componentAdd: {
+    position: 'absolute', 
+    bottom: 10, 
+    left: 20,
+    zIndex: 999, 
+    backgroundColor: 'white',
+    width: '90%',
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  conponentLoading: { 
+    position: 'absolute', 
+    top: 50, 
+    right: '45%',
+    zIndex: 999, 
+  },
+  conponentReload: { 
+    position: 'absolute', 
+    top: 50, 
+    right: 20,
+    zIndex: 999, 
+  },
   iconCategory: {
     width: "91%",
     flexDirection: "row",
@@ -312,7 +446,7 @@ const styles = StyleSheet.create({
   },
   textItemRecent: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: 800,
     marginTop: 5,
   },
   itemRecent: {
@@ -375,7 +509,7 @@ const styles = StyleSheet.create({
     minHeight: 40,
   },
   buttonText: {
-    color: "black",
+    color: "#363636",
     fontWeight: "bold",
     fontSize: 16,
   },
@@ -387,7 +521,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 20,
     fontWeight: "bold",
-    color: "black",
+    color: "#363636",
   },
   recentComponent: {
     minHeight: 180,
@@ -413,6 +547,6 @@ const styles = StyleSheet.create({
   },
   chevronIcon: {
     fontSize: 20,
-    paddingHorizontal: 2
-  }
+    paddingHorizontal: 2,
+  },
 });

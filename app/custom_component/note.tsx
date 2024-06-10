@@ -1,54 +1,99 @@
-import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet, Keyboard } from 'react-native';
-import { RichText, Toolbar, useEditorBridge } from '@10play/tentap-editor';
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  View,
+  Text,
+  Button,
+  StyleSheet,
+  Keyboard,
+  Pressable,
+  KeyboardAvoidingView,
+} from "react-native";
+import { RichText, Toolbar, useEditorBridge } from "@10play/tentap-editor";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import { useGlobalSearchParams, useNavigation, useRouter } from "expo-router";
+import { TabBarIcon } from "@/components/navigation/TabBarIcon";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModal, BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import OptionNote from "./optionNote";
 
-const Note = () => {
+const Note = ({}) => {
   const [noteText, setNoteText] = useState("");
+  const navigation = useNavigation();
+  const { id, title } = useGlobalSearchParams();
+  const [dataOption, setDataOption] = useState();
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+
+  const handlePresentModalPress = useCallback(() => {
+    dismiss()
+    bottomSheetModalRef.current?.present();
+  }, []);
+
+  console.log(999, id, title);
+
   const editor = useEditorBridge({
     autofocus: true,
-    avoidIosKeyboard: true,
+    avoidIosKeyboard: false,
     initialContent: noteText,
   });
 
   const dismiss = () => {
     editor.blur();
     Keyboard.dismiss();
+    bottomSheetModalRef.current?.dismiss();
   };
 
+  useEffect(() => {
+    navigation.setOptions({
+      title: title,
+      headerRight: () => (
+        <View style={{ flexDirection: "row" }}>
+          <Pressable onPress={handlePresentModalPress} style={{ marginEnd: 8 }}>
+            <TabBarIcon
+              name={"ellipsis-horizontal-circle-outline"}
+              color={"#000"}
+            />
+          </Pressable>
+          <Pressable style={{ marginEnd: 8 }}>
+            <TabBarIcon name={"cloud-upload-outline"} color={"#000"} />
+          </Pressable>
+          <Pressable onPress={dismiss}>
+            <TabBarIcon name={"chevron-down-circle-outline"} />
+          </Pressable>
+        </View>
+      ),
+    });
+  }, [navigation]);
+
+  const handleUpdate = (data: any) => {
+    console.log('Updated data:', data);
+};
 
   return (
-    <View style={styles.container}>
-       <View style={styles.btnContainer}>
-          <Button title="Close Keyboard" onPress={dismiss} />
-        </View>
-        <SafeAreaView style={{ flex: 1 }}>
+    <GestureHandlerRootView>
+      <BottomSheetModalProvider>
+        <View style={{ flex: 1 }}>
           <RichText editor={editor} />
-          <Toolbar editor={editor} />
-        </SafeAreaView>
-    </View>
+          <KeyboardAvoidingView
+            behavior={"padding"}
+            style={{
+              position: "absolute",
+              width: "100%",
+              bottom: 301,
+            }}
+          >
+            <Toolbar editor={editor} />
+          </KeyboardAvoidingView>
+        </View>
+        <OptionNote
+          bottomSheetModalRef={bottomSheetModalRef}
+          onUpdate={handleUpdate}
+        />
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
-}
-
-const styles = StyleSheet.create({
-  btnContainer: {
-    backgroundColor: "white",
-    marginTop: 12,
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white'
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
-  },
-  text: {
-    fontSize: 18,
-    marginBottom: 10,
-  },
-});
+};
 
 export default Note;
