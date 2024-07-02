@@ -42,6 +42,7 @@ import {
   getNodeListWithoutGroup,
   getNoteListWithGroup
 } from "../api/home.api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -54,12 +55,12 @@ export default function HomeScreen() {
   const toggleExpanded = () => setExpanded(!expanded);
   const toggleExpandedPrivate = () => setExpandedPrivate(!expandedPrivate);
   const toggleExpandedGroup = () => setExpandedGroup(!expandedGroup);
-  const [nodeListPrivate, setNodeListPrivate] = useState<
-    INodeListWithGroup[]
-  >([]);
-  const [nodeListGroup, setNodeListGroup] = useState<
-    INodeListWithGroup[]
-  >([]);
+  const [nodeListPrivate, setNodeListPrivate] = useState<INodeListWithGroup[]>(
+    []
+  );
+  const [nodeListGroup, setNodeListGroup] = useState<INodeListWithGroup[]>([]);
+  const [nodeListLocal, setNodeListLocal] = useState<INodeListWithGroup[]>([]);
+  const [flastList, setFlastList] = useState<INodeListWithGroup[]>([]);
   const handlePresentModalPress = useCallback((dataSelect: any) => {
     setDataOption(dataSelect);
     bottomSheetModalRef.current?.present();
@@ -67,52 +68,46 @@ export default function HomeScreen() {
   const [reload, setReload] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const data1 = [
-    {
-      id: 1,
-      title: "note2",
-      category: "Local",
-      dateTime: Date.now,
-    },
-    {
-      id: 2,
-      title: "note3",
-      category: "Local",
-      dateTime: Date.now,
-    },
-    {
-      id: 3,
-      title: "note3",
-      category: "Local",
-      dateTime: Date.now,
-    },
-    {
-      id: 4,
-      title: "note3",
-      category: "Local",
-      dateTime: Date.now,
-    },
-    {
-      id: 5,
-      title: "note3",
-      category: "Local",
-      dateTime: Date.now,
-    },
-  ];
+  useEffect(() => {
+    const loadNotesFromAsyncStorage = async () => {
+      try {
+        const dataString = await AsyncStorage.getItem('123');
+        if (dataString) {
+          const parsedData: INodeListWithGroup[] = JSON.parse(dataString).map((item: any) => ({
+            ...item,
+            dateTime: new Date(item.dateTime)
+          }));
+          setNodeListLocal(parsedData);
+        } else {
+          setNodeListLocal([]);
+        }
+      } catch (error) {
+        console.error('Error retrieving data from AsyncStorage:', error);
+      }
+    };
+  
+    loadNotesFromAsyncStorage();
+  
+  }, [reload]);
 
+  // async function deleteNoteByTitle(title: string) {
+  //   try {
+  //     const dataString = await AsyncStorage.getItem('notes');
+  //     const notes = dataString ? JSON.parse(dataString) : [];
+  
+  //     const updatedNotes = notes.filter(note => note.title !== title);
+  
+  //     const updatedDataString = JSON.stringify(updatedNotes);
+  //     await AsyncStorage.setItem('notes', updatedDataString);
+  //   } catch (error) {
+  //     console.error('Error deleting note from AsyncStorage:', error);
+  //   }
+  // }
 
-  const data = [
-    {
-      id: "1",
-      title: "Item 1222222222",
-      category: "Local",
-      dateTime: Date.now,
-    },
-    { id: "2", title: "Item 2", category: "Private", dateTime: Date.now },
-    { id: "3", title: "Item 3", category: "Group", dateTime: Date.now },
-    { id: "4", title: "Item 4", category: "Private", dateTime: Date.now },
-    { id: "5", title: "Item 5", category: "Group", dateTime: Date.now },
-  ];
+  useEffect(() => {
+    const combinedList = [...nodeListPrivate, ...nodeListGroup, ...nodeListLocal].sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime());
+    setFlastList(combinedList.slice(0, 5));
+  }, [nodeListGroup, nodeListPrivate, nodeListLocal])
 
   useEffect(() => {
     setLoading(true);
@@ -121,8 +116,15 @@ export default function HomeScreen() {
         authState?.token || "",
         authState?.userId || ""
       );
-      if(data) setLoading(false);
-      setNodeListPrivate(data);
+      if (data) {
+        const processedData = data.map(item => ({
+          ...item,
+          dateTime: new Date(item.dateTime)
+        }));
+  
+        setLoading(false);
+        setNodeListPrivate(processedData);
+      }
     };
 
     fetchData();
@@ -136,12 +138,23 @@ export default function HomeScreen() {
         authState?.userId || "",
         authState?.groupId || 0
       );
-      if(data) setLoading(false);
-      setNodeListGroup(data);
+      if (data) {
+        const processedData = data.map(item => ({
+          ...item,
+          dateTime: new Date(item.dateTime) 
+        }));
+  
+        setLoading(false);
+        setNodeListGroup(processedData);
+      }
     };
 
     fetchData();
   }, [authState, reload]);
+
+  const handleReloadChange = () => {
+    setReload(!reload); 
+  };
 
   const renderItem = ({ item }: any) => (
     <Pressable
@@ -178,22 +191,41 @@ export default function HomeScreen() {
       <GestureHandlerRootView>
         <BottomSheetModalProvider>
           {loading && (
-            <ActivityIndicator style={styles.conponentLoading} size="large" color="#000000" />
+            <ActivityIndicator
+              style={styles.conponentLoading}
+              size="large"
+              color="#000000"
+            />
           )}
           <View style={styles.componentAdd}>
-            <Pressable  style={styles.btnAdd}
-                onPress={() =>
-                  router.push({
-                    pathname: "../custom_component/note",
-                    params: { id: 0, title: 'New note' },
-                  })
-                }>
-              <TabBarIcon name={'create-outline'} color={'#696969'}></TabBarIcon>
+            <Pressable
+              style={styles.btnAdd}
+              onPress={() =>
+                router.push({
+                  pathname: "../custom_component/note",
+                  params: { id: 0, title: "New note" },
+                })
+              }
+            >
+              <TabBarIcon
+                name={"create-outline"}
+                color={"#696969"}
+              ></TabBarIcon>
             </Pressable>
           </View>
           <View style={styles.conponentReload}>
-            <Pressable onPress={() => setReload(!reload)}>
-              <TabBarIcon name={'reload-outline'} color={'#696969'}></TabBarIcon>
+            <Pressable
+              onPress={() => setReload(!reload)}
+              style={{
+                backgroundColor: "#FFFFFF",
+                borderRadius: 6,
+                padding: 4,
+              }}
+            >
+              <TabBarIcon
+                name={"reload-outline"}
+                color={"#696969"}
+              ></TabBarIcon>
             </Pressable>
           </View>
           <ScrollView>
@@ -202,10 +234,11 @@ export default function HomeScreen() {
                 <Text style={styles.recentTitle}>Recent</Text>
                 <View style={styles.recentBox}>
                   <FlatList
-                    data={data}
+                    data={flastList}
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     renderItem={renderItem}
+                    keyExtractor={(item) => item.id.toString()}
                   />
                 </View>
               </View>
@@ -228,8 +261,8 @@ export default function HomeScreen() {
                 </TouchableOpacity>
                 {expanded && (
                   <View style={styles.content}>
-                    {data1.map((item) => (
-                      <View style={styles.rowItem} > 
+                    {nodeListLocal.map((item) => (
+                      <View style={styles.rowItem} key={item.id}>
                         <Pressable
                           style={styles.item}
                           onPress={() =>
@@ -243,7 +276,10 @@ export default function HomeScreen() {
                             name="document-text-outline"
                             color={"#696969"}
                           />
-                          <Text style={styles.textItem}>{item.title}</Text>
+                          <View style={styles.boxItem}>
+                            <Text style={styles.textItem}>{item.title}</Text>
+                            <Text style={styles.dateTimeItem}> {item.dateTime.toLocaleDateString()}</Text>
+                          </View>
                         </Pressable>
                         <Pressable
                           style={styles.option}
@@ -283,7 +319,7 @@ export default function HomeScreen() {
                     {expandedPrivate && (
                       <View style={styles.content}>
                         {nodeListPrivate?.map((item) => (
-                          <View style={styles.rowItem}>
+                          <View style={styles.rowItem} key={item.id}>
                             <Pressable
                               style={styles.item}
                               onPress={() =>
@@ -297,7 +333,15 @@ export default function HomeScreen() {
                                 name="document-text-outline"
                                 color={"#696969"}
                               />
-                              <Text style={styles.textItem}>{item.title}</Text>
+                              <View style={styles.boxItem}>
+                                <Text style={styles.textItem}>
+                                  {item.title}
+                                </Text>
+                                <Text style={styles.dateTimeItem}>
+                                  {" "}
+                                  {item.dateTime.toLocaleDateString()}
+                                </Text>
+                              </View>
                             </Pressable>
                             <Pressable
                               style={styles.option}
@@ -313,16 +357,10 @@ export default function HomeScreen() {
                       </View>
                     )}
                   </>
-                ) : (
-                  <>
-                    <View>
-                      <Text>Login For Use</Text>
-                    </View>
-                  </>
-                )}
+                ) : null}
               </View>
               {authState?.authenticated ? (
-                <View style={styles.collapseBox}>
+                <View style={[styles.collapseBox, { marginBottom: 60 }]}>
                   <TouchableOpacity
                     style={[styles.collapseButton]}
                     onPress={toggleExpandedGroup}
@@ -346,7 +384,7 @@ export default function HomeScreen() {
                       {expandedGroup && (
                         <View style={styles.content}>
                           {nodeListGroup.map((item) => (
-                            <View style={styles.rowItem}>
+                            <View style={styles.rowItem} key={item.id}>
                               <Pressable
                                 style={styles.item}
                                 onPress={() =>
@@ -360,9 +398,15 @@ export default function HomeScreen() {
                                   name="document-text-outline"
                                   color={"#696969"}
                                 />
-                                <Text style={styles.textItem}>
-                                  {item.title}
-                                </Text>
+                                <View style={styles.boxItem}>
+                                  <Text style={styles.textItem}>
+                                    {item.title}
+                                  </Text>
+                                  <Text style={styles.dateTimeItem}>
+                                    {" "}
+                                    {item.dateTime.toLocaleDateString()}
+                                  </Text>
+                                </View>
                               </Pressable>
                               <Pressable
                                 style={styles.option}
@@ -378,21 +422,15 @@ export default function HomeScreen() {
                         </View>
                       )}
                     </>
-                  ) : (
-                    <>
-                      <View>
-                        <Text>Join Group</Text>
-                      </View>
-                    </>
-                  )}
+                  ) : null}
                 </View>
               ) : null}
             </View>
-           
           </ScrollView>
           <OptionItem
             bottomSheetModalRef={bottomSheetModalRef}
             dataOption={dataOption}
+            handleReloadChange={handleReloadChange}
           />
         </BottomSheetModalProvider>
       </GestureHandlerRootView>
@@ -401,6 +439,13 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  dateTimeItem: {
+    color: '#696969',
+    marginStart: 6
+  },
+  boxItem: {
+    flexDirection: 'column'
+  },
   btnAdd: {
     width: '100%',
     flexDirection: 'row',
@@ -438,6 +483,15 @@ const styles = StyleSheet.create({
     top: 50, 
     right: 20,
     zIndex: 999, 
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.27,
+    shadowRadius: 4.65,
+
+    elevation: 6,
   },
   iconCategory: {
     width: "91%",
@@ -496,6 +550,7 @@ const styles = StyleSheet.create({
     width: "90%",
     alignItems: "center",
     minHeight: 35,
+
   },
   collapseBox: {
     borderBottomColor: "#CFCFCF",
@@ -525,13 +580,15 @@ const styles = StyleSheet.create({
   },
   recentComponent: {
     minHeight: 180,
-    justifyContent: "flex-start",
+    justifyContent: "center",
     paddingEnd: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#CFCFCF",
     borderStyle: "solid",
   },
-  recentBox: {},
+  recentBox: {
+    width: 398
+  },
   recentTitle: {
     fontSize: 16,
     fontWeight: "bold",

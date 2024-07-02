@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {Alert, Modal, StyleSheet, Text, Pressable, TextInput, View} from 'react-native';
+import {Alert, Modal, StyleSheet, Text, Pressable, TextInput, View, ActivityIndicator} from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
 interface RegisterProps {
@@ -7,27 +7,37 @@ interface RegisterProps {
   toggleModal: () => void;
 }
 
-const Register = ({ modalVisible , toggleModal} : RegisterProps) => {
-    const {onLogin} = useAuth();
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+const Register = ({ modalVisible, toggleModal }: RegisterProps) => {
+  const { onLogin, onRegister } = useAuth();
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    const login = async () => {
-      const result = await onLogin!(username, password)
-
-      if(result && result.error){
-        alert(result.msg);
-      }
+  const register = async () => {
+    setLoading(true);
+    const result = await onRegister!(username, email, password);
+    if (result || result.error) {
+      toggleModal();
+      setLoading(false);
     }
+  };
 
-    return (
-      <View style={styles.centeredView}>
+  return (
+    <View style={styles.centeredView}>
       <Modal
         animationType="fade"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={toggleModal}>
+        onRequestClose={toggleModal}
+      >
+        {loading && (
+            <ActivityIndicator
+              style={styles.conponentLoading}
+              size="large"
+              color="#000000"
+            />
+          )}
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.modalText}>Register</Text>
@@ -37,7 +47,7 @@ const Register = ({ modalVisible , toggleModal} : RegisterProps) => {
               value={username}
               onChangeText={setUsername}
             />
-             <TextInput
+            <TextInput
               style={styles.input}
               placeholder="Email"
               value={email}
@@ -51,10 +61,16 @@ const Register = ({ modalVisible , toggleModal} : RegisterProps) => {
               secureTextEntry
             />
             <View style={styles.buttonRow}>
-              <Pressable style={[styles.button, styles.buttonSubmit]} onPress={toggleModal}>
+              <Pressable
+                style={[styles.button, styles.buttonSubmit]}
+                onPress={register}
+              >
                 <Text style={styles.textStyle}>Submit</Text>
               </Pressable>
-              <Pressable style={[styles.button, styles.buttonClose]} onPress={toggleModal}>
+              <Pressable
+                style={[styles.button, styles.buttonClose]}
+                onPress={toggleModal}
+              >
                 <Text style={styles.textStyle}>Cancel</Text>
               </Pressable>
             </View>
@@ -62,10 +78,16 @@ const Register = ({ modalVisible , toggleModal} : RegisterProps) => {
         </View>
       </Modal>
     </View>
-    );
-  };
+  );
+};
   
   const styles = StyleSheet.create({
+    conponentLoading: { 
+      position: 'absolute', 
+      top: 50, 
+      right: '45%',
+      zIndex: 999, 
+    },
     input: {
       width: '100%',
       height: 40,
@@ -84,7 +106,7 @@ const Register = ({ modalVisible , toggleModal} : RegisterProps) => {
     },
     modalView: {
       width: 300,
-      backgroundColor: '#808080',
+      backgroundColor: '#ffffff',
       borderRadius: 20,
       padding: 20,
       alignItems: 'center',

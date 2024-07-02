@@ -18,6 +18,7 @@ interface AuthProps {
   ) => Promise<any>;
   onLogin?: (userName: string, password: string) => Promise<any>;
   onLogout?: () => Promise<any>;
+  updateGroupId?: (groupId: number | null) => Promise<any>;
 }
 
 const TOKEN_KEY = "my_secure_token";
@@ -75,7 +76,7 @@ export const AuthProvider = ({ children }: any) => {
     password: string
   ) => {
     try {
-      return await axios.post(`${baseUrl}/api/Account/register`, {
+      return await axios.post(`${baseUrl}/Account/register`, {
         username,
         email,
         password,
@@ -138,11 +139,30 @@ export const AuthProvider = ({ children }: any) => {
     }
   };
 
+  const updateGroupId = async (newGroupId: number | null) => {
+    try {
+      if(newGroupId){
+        await SecureStore.setItemAsync(GROUP_ID, newGroupId.toString());
+      }
+      else {
+        await SecureStore.deleteItemAsync(GROUP_ID);
+      }
+
+      setAuthState((prevState) => ({
+        ...prevState,
+        groupId: newGroupId,
+      }));
+    } catch (error) {
+      console.error("Error updating groupId:", error);
+    }
+  };
+
   const value = {
     onRegister: register,
     onLogin: login,
     onLogout: logout,
     authState,
+    updateGroupId
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

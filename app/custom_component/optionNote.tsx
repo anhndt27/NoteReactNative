@@ -11,30 +11,34 @@ import {
 } from "react-native";
 
 interface OptionNoteProps {
+  optionNote: any;
   bottomSheetModalRef: any;
-  onUpdate: (data: { title: string; category: Category; status: Status }) => void;
+  onUpdate: (data: {
+    title: string;
+    category: Category;
+    status: Status;
+  }) => void;
 }
 
 enum Category {
-  Location,
   Private,
+  Location,
   Group,
 }
 
 enum Status {
-  Private,
   Public,
   Readonly,
 }
 
-const OptionNote = ({ bottomSheetModalRef, onUpdate }: OptionNoteProps) => {
+const OptionNote = ({ bottomSheetModalRef, onUpdate, optionNote }: OptionNoteProps) => {
     const initialSnapPoints = useMemo(() => ['35%'], []);
     const [snapPoints, setSnapPoints] = useState(initialSnapPoints);
-    const [title, setTitle] = useState<string>("");
+    const [title, setTitle] = useState<string>(optionNote.title);
     const [category, setCategory] = useState<Category>(
-        Category.Private
+        optionNote.category
     );
-    const [status, setStatus] = useState<Status>(Status.Private);
+    const [status, setStatus] = useState<Status>(optionNote.status);
 
     const handleSave = () => {
         onUpdate({
@@ -75,22 +79,22 @@ const OptionNote = ({ bottomSheetModalRef, onUpdate }: OptionNoteProps) => {
             <TouchableOpacity
               style={[
                 styles.radioButton,
-                category === Category.Location &&
-                  styles.radioButtonSelected,
-              ]}
-              onPress={() => setCategory(Category.Location)}
-            >
-              <Text>Location</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.radioButton,
                 category === Category.Private &&
                   styles.radioButtonSelected,
               ]}
               onPress={() => setCategory(Category.Private)}
             >
               <Text>Private</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.radioButton,
+                category === Category.Location &&
+                  styles.radioButtonSelected,
+              ]}
+              onPress={() => setCategory(Category.Location)}
+            >
+              <Text>Location</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -105,15 +109,6 @@ const OptionNote = ({ bottomSheetModalRef, onUpdate }: OptionNoteProps) => {
           </View>
           <Text>Status:</Text>
           <View style={styles.radioContainer}>
-            <TouchableOpacity
-              style={[
-                styles.radioButton,
-                status === Status.Private && styles.radioButtonSelected,
-              ]}
-              onPress={() => setStatus(Status.Private)}
-            >
-              <Text>Private</Text>
-            </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.radioButton,
@@ -176,12 +171,15 @@ const styles = StyleSheet.create({
   },
   radioButtonSelected: {
     borderColor: "blue",
+    color: 'blue'
   },
   saveButton: {
     marginTop: 20,
-    backgroundColor: "blue",
     padding: 10,
     borderRadius: 5,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'center'
   },
 });
 

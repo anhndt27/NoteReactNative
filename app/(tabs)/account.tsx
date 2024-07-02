@@ -5,36 +5,49 @@ import { useAuth } from '../context/AuthContext';
 import Register from '../custom_component/register';
 import { userInformation } from '../api/account.api';
 import * as Clipboard from 'expo-clipboard';
+import { TabBarIcon } from '@/components/navigation/TabBarIcon';
+import { createGroup, getGroupCode, outGroup, submitGroupCode } from '../api/group.api';
 
 const Account = () => {
   const [modalRegister, setModalRegister] = useState(false);
-  const {authState, onLogout} = useAuth();
-  const {onLogin} = useAuth();
+  const {authState, onLogout, onLogin, updateGroupId} = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [user, setUser] = useState<any>();
   const [loading, setLoading] = useState(false);
   const [shareGroup, setShareGroup] = useState(false);
   const [joinGroupModal, setJoinGroupModal] = useState(false);
+  const [createGroupModal, setCreateGroupModal] = useState(false);
   const [inputGroupCode, setInputGroupCode] = useState('');
-  
+  const [groupCode, setGroupCode] = useState("");
+  const [groupName, setGroupName] = useState('');
+
   const login = async () => {
     setLoading(true);
     const result = await onLogin!(username, password);
     setLoading(false);
-    if(result && result.error){
-      alert("Incorrect user name or password");
-    }
+    // if(result && result.error){
+    //   alert("Incorrect user name or password");
+    // }
   }
 
   const handleGetGroupCode = async () => {
     setLoading(true);
-    const result = '';
-    setLoading(false)
-    setShareGroup(!shareGroup);
-    if(result) {
+    if (authState?.groupId !== null && authState?.groupId !== undefined) {
+      const result = await getGroupCode(
+        authState.token || "",
+        authState.groupId
+      );
+      if(result) {
+        setLoading(false);
+        setGroupCode(result);
+        setShareGroup(!shareGroup);
+      }
+    } else {
+      setLoading(false);
+      setShareGroup(!shareGroup);
     }
-  }
+  };
 
   useEffect(() => {
     const callUserInformation = async () => {
@@ -64,21 +77,64 @@ const Account = () => {
   };
 
 
-  const [copiedText, setCopiedText] = useState('');
 
   const copyToClipboard = async () => {
-    await Clipboard.setStringAsync('hello world');
+    await Clipboard.setStringAsync(groupCode);
     setShareGroup(!shareGroup);
     alert('Copy code!');
   };
 
-  const fetchCopiedText = async () => {
-    const text = await Clipboard.getStringAsync();
-    setCopiedText(text);
-  };
+  // const fetchCopiedText = async () => {
+  //   const text = await Clipboard.getStringAsync();
+  //   setCopiedText(text);
+  // };
+
+  // useEffect(() => {
+  //   fetchCopiedText();
+  // }, [groupCode])
+
+  const handleOutGroup = async () => {
+    setLoading(true)
+    const data = {
+      userId: authState?.userId,
+      groupId: authState?.groupId
+    }
+
+    const result = await outGroup(authState?.token || "", data);
+    if(result){
+      await updateGroupId!(null)
+    }
+    setLoading(false)
+  }
+
+  const handleCreateGroup = async () => {
+    setLoading(true)
+    const data = {
+      userId: authState?.userId,
+      groupName: groupName
+    }
+
+    const result = await createGroup(authState?.token || "", data);
+    if(result){
+      await updateGroupId!(result)
+    }
+    setCreateGroupModal(!createGroupModal);
+    setLoading(false);
+  }
 
   const handleSubmitGroupCode = async () => {
+    setLoading(true)
+    const data = {
+      userId: authState?.userId,
+      groupCode: inputGroupCode
+    }
+    const result = await submitGroupCode(authState?.token || "",data);
+    if(result){
+      await updateGroupId!(result)
+    }
+   
     setJoinGroupModal(!joinGroupModal);
+    setLoading(false)
   }
 
   return (
@@ -112,17 +168,29 @@ const Account = () => {
                   <>
                     <Text style={styles.text}>{user?.groupName}</Text>
                     <Pressable onPress={handleGetGroupCode}>
-                      <Text style={[styles.text, styles.underLineText ]}>Share group</Text>
+                      <Text style={[styles.text, styles.underLineText ]}>Share</Text>
+                    </Pressable>
+                    <Pressable onPress={handleOutGroup}>
+                      <Text style={[styles.text, styles.underLineText]}>Out</Text>
                     </Pressable>
                   </>
                   ) : (
                   <>
                     <Pressable onPress={() => setJoinGroupModal(!joinGroupModal)}>
-                      <Text style={[styles.text, styles.underLineText]}>Join group</Text>
+                      <Text style={[styles.text, styles.underLineText]}>Join</Text>
+                    </Pressable>
+                    <Pressable onPress={() => setCreateGroupModal(!joinGroupModal)}>
+                      <Text style={[styles.text, styles.underLineText]}>Create</Text>
                     </Pressable>
                   </>
                   )}
               </View>
+              <Pressable>
+                <TabBarIcon
+                  name={"create-outline"}
+                  color={"#000"}
+                />
+              </Pressable>
               <Button title="Logout" onPress={onLogout} />
               {/* <Button title="Edit Password" onPress={handleEditPassword} /> */}
               {/* <Button title="Edit User Name" onPress={handleEditUserName} /> */}
@@ -150,7 +218,7 @@ const Account = () => {
                   style={[styles.button, styles.buttonSubmit]}
                   onPress={login}
                 >
-                  <Text style={styles.textStyle}>Submit</Text>
+                  <Text style={styles.textStyle}>Login</Text>
                 </Pressable>
                 <Pressable
                 onPress={toggleModal}
@@ -174,7 +242,7 @@ const Account = () => {
             <View style={styles.centeredView}>
               <View style={styles.modalView}>
                 <Text>Group Code:</Text>
-                <Text>{}</Text>
+                <Text style={{fontWeight: 'bold'}}>{groupCode}</Text>
                 <Pressable style={[styles.button, styles.buttonSubmit]} onPress={copyToClipboard}>
                   <Text>Copy</Text>
                 </Pressable>
@@ -199,6 +267,30 @@ const Account = () => {
                     <Text>Submit</Text>
                   </Pressable >
                   <Pressable style={[styles.button, styles.buttonClose]} onPress={() => setJoinGroupModal(!joinGroupModal)}>
+                    <Text>Cancel</Text>
+                  </Pressable>
+                </View>
+              </View> 
+            </View>
+        </Modal>
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={createGroupModal}
+          onRequestClose={toggleModal}>
+            <View style={styles.centeredView}>
+              <View style={styles.modalView}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter Group Name"
+                  value={groupName}
+                  onChangeText={setGroupName}
+                />
+                <View style={[styles.row, styles.center]}>
+                  <Pressable style={[styles.button, styles.buttonSubmit]} onPress={handleCreateGroup}>
+                    <Text>Create</Text>
+                  </Pressable >
+                  <Pressable style={[styles.button, styles.buttonClose]} onPress={() => setCreateGroupModal(!createGroup)}>
                     <Text>Cancel</Text>
                   </Pressable>
                 </View>
@@ -239,7 +331,11 @@ const styles = StyleSheet.create({
   },
   underLineText: {
      textDecorationLine: 'underline',
-     color: 'blue'
+     color: 'blue',
+     marginLeft: 16,
+     borderWidth: 1,
+     borderRadius: 4,
+     padding: 2
   },
   accountContainer: {
     borderWidth: 1,
@@ -279,8 +375,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
   },
   button: {
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 6,
+    padding: 6,
     marginVertical: 5,
     elevation: 2,
     margin: 5
@@ -314,7 +410,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    textAlign: 'center',
+    alignItems: 'center',
     width: '100%',
     marginBottom: 20,
   },
